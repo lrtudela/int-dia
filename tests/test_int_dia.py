@@ -187,8 +187,14 @@ with sync_playwright() as pw:
     check("⇥ con propuesta la acepta, aunque el editor no tenga selección", texts(g)[-1] == "LUISA" and types(g)[-1] == "character", [texts(g), types(g)])
     cyc()
     check("⇥ sin propuesta rota el tipo", types(g)[-1] != "character", types(g))
+    g.evaluate(lu); g.click("#ed > div:last-child"); g.keyboard.type("Lu"); g.wait_for_timeout(50)
+    g.evaluate("ED.blur();getSelection().removeAllRanges()")
+    g.evaluate("SUG.firstChild.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true}))"); g.wait_for_timeout(50)
+    check("tocar el nombre lo acepta aunque el editor no tenga selección, cursor al final", texts(g)[-1] == "LUISA" and types(g)[-1] == "character"
+          and g.evaluate("getSelection().anchorNode?.parentNode===ED.lastChild&&getSelection().anchorOffset===5"), [texts(g), types(g)])
     ayu = g.evaluate("document.querySelector('[data-s=ayu]').textContent")
     check("la ayuda dice que Tab acepta la propuesta y ⇥ en el móvil", "Tab (o la flecha derecha) lo acepta" in ayu and "Esc lo descarta" in ayu and "⇥ hace lo mismo que Tab" in ayu)
+    check("la ayuda dice que en el móvil se toca el nombre", "toca el nombre en la barra de abajo" in ayu)
 
     # 7a. Esc y Tab sacan el foco del editor
     foc = lambda: g.evaluate("document.activeElement.id||document.activeElement.closest('#panel,#menu')?.id||document.activeElement.tagName")
