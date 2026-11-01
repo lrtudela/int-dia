@@ -1,7 +1,7 @@
 """Pruebas de INT. DÍA. Uso: python tests/test_int_dia.py"""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import sys
+import re, sys
 
 URL = (Path(__file__).resolve().parent.parent / "index.html").as_uri()
 errs, fails = [], []
@@ -839,6 +839,87 @@ with sync_playwright() as pw:
     I.click("#menu summary")
     sw = I.evaluate("[document.documentElement.scrollWidth,$('route').getBoundingClientRect().right<=360]")
     check("itinerario en 360px: Enter lo respeta, el selector cabe y sin scroll horizontal", t[2] == "action" and sw == [360, True], [t, sw])
+
+    # 20. transiciones en castellano
+    T = page()
+    src = "INT. CASA - DÍA\\n\\nAna sale.\\n\\nCORTE A:\\n\\nEXT. CALLE - DÍA\\n\\nFUNDIDO A NEGRO:\\n\\nDISOLVENCIA A.\\n\\nCORTE A la cocina, sin más.\\n\\nCORTE A LA COCINA\\n\\nEl coche frena. CORTE A:\\n"
+    d = T.evaluate(f"parseFountain('{src}').l")
+    check("transiciones en castellano solas entre blancos", [x[0] for x in d] == ["heading", "action", "transition", "heading", "transition", "transition", "action", "action", "action"], d)
+    ok = T.evaluate(f"""()=>{{const d=parseFountain('{src}');load(d.t,d.m,d.l);const a=JSON.stringify(rows()),f=toFountain();return a===JSON.stringify(parseFountain(f).l)||[a,f]}}""")
+    check("transiciones en castellano: ida y vuelta Fountain", ok is True, ok)
+
+    # 21. pegar con formato de guion, solo si lo parece
+    P = page()
+    def paste(x, s, at=0, rows_=None, mode="cine"):
+        x.evaluate(f"load('x','{mode}',{rows_ or [['action','Antes.']]},null,[],[{{id:'1',text:'Vieja',from:'',versions:[]}}]);ED.firstChild.dataset.note='1';commit();ED.focus();caret(ED.children[{at}],2)")
+        x.evaluate("s=>{const dt=new DataTransfer();dt.setData('text/plain',s);cur().dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}))}", s)
+        x.clock.run_for(500)
+        return x.evaluate("lines().map(l=>[l.type,l.text])")
+    sc = "INT. BAR - NOCHE\n\nAna bebe. [[nota: pegada]]\n\nLUIS\n(bajo)\n¿Otra?\n\nANA\nNo.\n"
+    got = paste(P, sc)
+    check("pegar escena Fountain: tipos correctos tras la línea actual", got == [["action", "Antes."], ["heading", "INT. BAR - NOCHE"], ["action", "Ana bebe."], ["character", "LUIS"], ["paren", "(bajo)"], ["dialogue", "¿Otra?"], ["character", "ANA"], ["dialogue", "No."]], got)
+    check("pegar: las [[notas]] pegadas se ignoran y la existente sigue", P.evaluate("[NT.length,NT[0].text,ED.firstChild.dataset.note,ED.innerHTML.includes('[[')]") == [1, "Vieja", "1", False])
+    P.keyboard.press("Control+z")
+    check("pegar: un solo deshacer quita toda la escena", P.evaluate("lines().map(l=>[l.type,l.text])") == [["action", "Antes."]], texts(P))
+    got = paste(P, "Title: Otro\nMode: teatro\n\nPEDRO\nHola.\n\nMARTA\nAdiós.", rows_=[['heading', '']])
+    check("pegar: sustituye la línea vacía y salta la portada", got == [["character", "PEDRO"], ["dialogue", "Hola."], ["character", "MARTA"], ["dialogue", "Adiós."]], got)
+    got = paste(P, ".ESCENA 2\n\n# ACTO II\n\nEntra Ana.\n", mode="teatro", rows_=[['stage', 'Antes.']])
+    check("pegar en teatro: tipos de teatro", [x[0] for x in got] == ["stage", "heading", "act", "stage"], got)
+    got = paste(P, "Primera línea de un texto\nNOTA IMPORTANTE\nque sigue normal.", at=0)
+    check("pegar párrafo normal (con una línea en mayúsculas): como siempre", got == [["action", "AnPrimera línea de un texto"], ["action", "NOTA IMPORTANTE"], ["action", "que sigue normal.tes."]], got)
+    got = paste(P, "PEDRO\nHola.")
+    check("pegar un solo personaje con diálogo: como siempre", [x[0] for x in got] == ["action", "action"], got)
+    hp = P.evaluate("document.querySelector('[data-s=ayu]').textContent")
+    check("la ayuda explica pegar como guion y que las notas pegadas se ignoran", all(s in hp for s in ["Pegar", "parece un guion en Fountain", "un solo Ctrl+Z", "se pega como siempre", "se ignoran la portada y las notas"]), hp)
+
+    # 22. páginas y duración, contra el PDF que imprime Chromium
+    D = page()
+    D.clock.resume()
+    gen = """([mode,n])=>{let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+      const W='la casa luz noche espera mira sale entra dice nada siempre puerta mesa ventana coche'.split(' ');
+      const txt=k=>Array.from({length:k},()=>W[Math.floor(r()*W.length)]).join(' '),L=[];
+      for(let i=0;i<n;i++){L.push(['heading',mode==='cine'?'INT. CASA '+i+' - NOCHE':'ESCENA '+(i+1)]);L.push([mode==='cine'?'action':'stage',txt(5+Math.floor(r()*40))]);
+       for(let j=0;j<3+Math.floor(r()*6);j++){L.push(['character',r()<.5?'ANA':'LUIS']);if(r()<.3)L.push(['paren',txt(2+Math.floor(r()*6))]);L.push(['dialogue',txt(3+Math.floor(r()*35))])}
+       if(mode==='cine'&&r()<.3)L.push(['transition','CORTE A:'])}
+      load('Prueba larga',mode,L);commit();return pages()}"""
+    def pdf_pages(): return len(re.findall(rb"/Type\s*/Page[^s]", D.pdf(format="A4", prefer_css_page_size=True)))
+    est, real = D.evaluate("pages()"), pdf_pages()
+    check("páginas: el demo estima lo mismo que su PDF", est == real == 1, [est, real])
+    for mode in ["cine", "teatro"]:
+        est = D.evaluate(gen, [mode, 125]); real = pdf_pages()
+        check(f"páginas: un guion de ~100 páginas difiere del PDF un 10 % o menos ({mode})", 90 <= real <= 110 and abs(est - real) <= real * .1, [est, real])
+    st = D.evaluate("$('stat').textContent")
+    check("teatro muestra solo páginas", re.search(r"\d+ pág\.", st) and "min" not in st, st)
+    D.evaluate("MO.value='cine';MO.onchange();commit()")
+    st = D.evaluate("$('stat').textContent")
+    check("cine muestra páginas y minutos", re.search(r"(\d+) pág\. · ~\1 min", st), st)
+    D.evaluate("setCover({on:true,title:'X'});commit()")
+    check("la portada no cuenta como página", D.evaluate("pages()") == pdf_pages() - 1)
+    ms = D.evaluate("""()=>{load('G','cine',Array.from({length:6000},(_,i)=>[['character','dialogue','action'][i%3],'palabra '.repeat(i%3?12:1)]));
+      const a=performance.now();for(let i=0;i<10;i++)pages();const p=(performance.now()-a)/10,b=performance.now();for(let i=0;i<10;i++){ED.firstChild.textContent+='z';commit()}return [p,(performance.now()-b)/10]}""")
+    check("páginas: con 6000 líneas cuesta poco (< 30 ms y menos de un tercio de cada guardado)", ms[0] < 30 and ms[0] < ms[1] / 3, ms)
+    hp = D.evaluate("document.querySelector('[data-s=ayu]').textContent")
+    check("la ayuda dice que páginas y minutos son una estimación", all(s in hp for s in ["Páginas y duración", "Es una estimación: una página, un minuto", "En teatro solo salen las páginas"]), hp)
+    D = page(360)
+    D.evaluate("TI.value='Un título bastante largo para el móvil';NT.push({id:'9',text:'',from:'',versions:[]});ED.firstChild.dataset.note='9';commit()")
+    sw = D.evaluate("[document.documentElement.scrollWidth,$('stat').getBoundingClientRect().right<=360,document.querySelector('footer').getBoundingClientRect().bottom<=innerHeight+1]")
+    check("páginas en 360px: sin scroll horizontal y el pie sigue en pantalla", sw == [360, True, True], [sw, D.evaluate("$('stat').textContent")])
+
+    # 23. tipografía: la interfaz en la de sistema, el guion en Courier (también al imprimir)
+    Y = page(1200)
+    fonts = """s=>[...document.querySelectorAll(s)].map(e=>getComputedStyle(e).fontFamily.includes('Courier'))"""
+    check("tipografía: editor, sus líneas y el título en Courier", all(Y.evaluate(fonts, "#ed, #ed>div, #title")))
+    Y.evaluate("NT.push({id:'1',text:'Una nota',from:'',versions:[]});ED.children[3].dataset.note='1';commit()")
+    ui = Y.evaluate(fonts, "header button, summary, #mode, #panel nav button, [data-s=ayu] p, #tipo, #stat, #notes textarea, #sheet textarea, #cover input")
+    check("tipografía: menús, paneles, ayuda, notas y diálogos en la de sistema", ui and not any(ui), ui)
+    Y.wait_for_timeout(100)
+    al = Y.evaluate("(()=>{const d=ED.children[3],n=document.querySelector('#notes .nt[data-id=\"1\"]');return [n.hidden,Math.abs(n.offsetTop-d.offsetTop)<1]})()")
+    check("tipografía: la nota al margen sigue alineada con su línea", al == [False, True], al)
+    Y.emulate_media(media="print")
+    check("tipografía: al imprimir, título, guion, papel y presencias en Courier", all(Y.evaluate(fonts, "body, #ptitle, #ed>div, #prole, #ppres")))
+    Y.emulate_media(media="screen")
+    hp = Y.evaluate("document.querySelector('[data-s=ayu]').textContent")
+    check("la ayuda explica la tipografía y que la impresión no cambia", all(s in hp for s in ["Tipografía", "en Courier", "letra del sistema", "siempre en Courier 12 pt"]), hp)
     b.close()
 
 print("ERRORES JS:", errs)

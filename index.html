@@ -6,6 +6,8 @@
 <title>INT. DÍA · editor de cine y teatro</title>
 <style>
 :root{--bg:#0a0d0a;--paper:#0f150f;--fg:#c9f7c0;--dim:#6e9a68;--acc:#ffd23f;--ln:#2f452f}
+/* the script and its title in Courier, like print; the interface in the system font */
+:root{--fuente-ui:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--fuente-ed:"Courier New",Courier,monospace}
 [data-theme=papel]{--bg:#d9d5c9;--paper:#fffef8;--fg:#1b1b1b;--dim:#5f5b50;--acc:#b3261e;--ln:#b0ac9f}
 [data-theme=ambar]{--bg:#16110b;--fg:#e8c27a;--acc:#ff9f43}
 [data-theme=sepia]{--bg:#1c1815;--fg:#d9cbb5;--acc:#e0a458}
@@ -15,12 +17,12 @@
 :is([data-theme=ambar],[data-theme=sepia],[data-theme=azul],[data-theme=salvia],[data-theme=vapor]){--paper:color-mix(in srgb,var(--fg) 5%,var(--bg));--dim:color-mix(in srgb,var(--fg) 70%,var(--bg));--ln:color-mix(in srgb,var(--fg) 25%,var(--bg))}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{display:flex;flex-direction:column;height:100dvh;background:var(--bg);color:var(--fg);font:16px/1.4 "Courier New",Courier,monospace}
+body{display:flex;flex-direction:column;height:100dvh;background:var(--bg);color:var(--fg);font:16px/1.4 var(--fuente-ui)}
 button,select,input,summary{font:inherit;color:inherit;background:var(--paper);border:2px solid var(--ln);padding:.3rem .6rem;min-height:42px;border-radius:0}
 button,summary{cursor:pointer}
 button:hover,button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{border-color:var(--acc);outline:none}
 header{position:relative;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;border-bottom:2px solid var(--ln);background:var(--paper)}
-#title{flex:1 1 140px;min-width:0;font-weight:700}
+#title{flex:1 1 140px;min-width:0;font-weight:700;font-family:var(--fuente-ed)}
 #stat,#saved,#copy{color:var(--dim);font-size:.85rem}
 #saved.err,#copy.warn{color:var(--acc);font-weight:700}
 @media(max-width:480px){#copy[data-s]{font-size:0}#copy[data-s]::after{content:attr(data-s);font-size:.85rem}}
@@ -99,7 +101,7 @@ dialog .act button{flex:1}
 #ment label{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--ln);overflow-wrap:anywhere}
 #ment input{flex:none;width:22px;height:22px;margin:0;accent-color:var(--acc)}
 #ment b{color:var(--acc)}
-#ed{max-width:62ch;margin:0 auto;padding:8px 0 50vh;outline:none;caret-color:var(--acc);white-space:pre-wrap;overflow-wrap:anywhere}
+#ed{font-family:var(--fuente-ed);max-width:62ch;margin:0 auto;padding:8px 0 50vh;outline:none;caret-color:var(--acc);white-space:pre-wrap;overflow-wrap:anywhere}
 #ed>div{margin-top:1em;min-height:1.4em}
 #ed>div.cur{background:color-mix(in srgb,var(--acc) 9%,transparent)}
 #ed>[data-ghost]::after{content:attr(data-ghost);color:var(--dim)}
@@ -121,7 +123,7 @@ footer{display:flex;gap:6px;align-items:center;padding:6px 8px;border-top:2px so
  @page{size:A4;margin:2.5cm;@top-right{content:counter(page);font:12pt "Courier New",Courier,monospace}}
  @page cover{counter-increment:page 0;@top-right{content:none}}
  html,body{height:auto}
- body{display:block;background:#fff;color:#000}
+ body{display:block;background:#fff;color:#000;font-family:var(--fuente-ed)}
  header,footer,#panel{display:none!important}
  #main{display:block}
  #wrap{overflow:visible;padding:0}
@@ -218,12 +220,15 @@ footer{display:flex;gap:6px;align-items:center;padding:6px 8px;border-top:2px so
    <b>Ctrl+Espacio</b>: autocompleta personaje.<br>
    Al escribir un personaje se propone en gris el más cercano: <b>Tab</b> (o la <b>flecha derecha</b>) lo acepta, <b>Enter</b> confirma lo escrito, <b>Esc</b> lo descarta. En el móvil, <b>toca el nombre</b> en la barra de abajo para aceptarlo; <b>⇥</b> hace lo mismo que Tab.<br>
    <b>Ctrl+Z</b> / <b>Ctrl+Y</b>: deshacer / rehacer.<br>
+   <b>Pegar</b>: si lo que pegas parece un guion en Fountain (con cabeceras INT./EXT., actos, transiciones o varios personajes con su diálogo), cada línea toma su tipo y entra tras la línea del cursor; un solo Ctrl+Z lo quita. Si no lo parece, se pega como siempre, con el tipo de la línea actual. De lo pegado se ignoran la portada y las notas, lugares y fichas entre <code>[[…]]</code>; el texto de cada línea se conserva.<br>
    Pulsa ✎ junto a un personaje para renombrarlo en todo el guion. Si el nuevo nombre ya existe, ambos se fusionan. Si un personaje aparece nombrado en el texto (acciones, acotaciones o diálogos), eliges qué menciones cambiar.<br>
    <b>Fichas</b>: ¶ junto a un personaje abre su ficha, un texto libre para apuntar quién es, qué quiere o sus relaciones; se resalta si ya tiene. Al renombrar, la ficha pasa al nombre nuevo; al fusionar, se juntan los dos textos. Si un personaje desaparece del texto, su ficha sigue en «Fichas sin personaje», donde puedes leerla o borrarla (✕). No se imprimen. Viajan en el .json y también en Fountain, al final del archivo, como <code>[[ficha NOMBRE: …]]</code>; otros programas las ignoran como cualquier nota.<br><br>
    <b>Presencias</b>: tabla con los personajes en filas y las escenas en columnas; ● marca las escenas en que habla cada uno (si solo se le nombra, no cuenta), y el número junto a cada nombre dice en cuántas escenas está. Pulsa un número o una celda para ir a esa escena. Sirve para planificar ensayos y repartir papeles. Para llevarla en papel, <b>Archivo › Tabla de presencias</b>: sale apaisada, en bloques de 25 escenas, con la lista de cabeceras debajo.<br><br>
    <b>Lugares</b>: dalos de alta en su pestaña. Con el cursor en una cabecera, elige allí su lugar; el texto de la cabecera no cambia. Pulsa un lugar para ir a sus escenas, una tras otra. ✎ cambia su nombre y ✕ lo borra (sus escenas se quedan sin lugar).<br><br>
    <b>Notas</b>: <b>Ctrl+Alt+M</b> (o «Nota en esta línea» en su pestaña) crea la nota de la línea del cursor o va a la que tiene; <b>Esc</b> vuelve al guion. Se ven en el margen derecho y nunca se imprimen. <b>Ctrl+Alt+N</b> salta a la siguiente línea con nota. Las líneas con nota llevan una marca a la izquierda, también con el margen cerrado, y arriba se ve cuántas notas hay. En pantallas estrechas no hay margen: pon el cursor en la línea para ver su nota debajo. Si borras una línea, su nota no se pierde: pasa a «Notas sueltas», desde donde la enganchas a la línea del cursor (⤶) o la borras (✕).<br>
    <b>Versiones</b>: en una nota, <b>+ versión</b> guarda una alternativa del texto de su línea (empieza siendo una copia, para que la edites). <b>⇄</b> la cambia por el texto de la línea, que pasa a ser una versión: no se pierde nada. Al exportar a Fountain, notas y versiones viajan como <code>[[nota: …]]</code> y <code>[[version: …]]</code>; las notas sueltas van al final.<br><br>
+   <b>Páginas y duración</b>: arriba, junto a las palabras, se ven las páginas que ocupará el guion impreso (A4, Courier 12 pt, sin contar la portada) y, en cine, los minutos. Es una estimación: una página, un minuto. En teatro solo salen las páginas, porque la duración depende demasiado de la puesta en escena.<br><br>
+   <b>Tipografía</b>: el guion y su título se escriben en Courier, como se imprimen; menús, paneles, notas, fichas y esta ayuda usan la letra del sistema, que se lee mejor en textos largos. Imprimir y el PDF salen siempre en Courier 12 pt, con la misma paginación.<br><br>
    <b>Copia</b>: el guion se guarda solo en este navegador y se pierde si se borran sus datos. Arriba se ve cuándo hiciste la última copia en archivo (<b>Guardar .json</b> o <b>Exportar .fountain</b>): «Copia al día», «Copia: hace N días» si has cambiado algo desde entonces, o «Sin copia». Si pasan más de 7 días con cambios sin copiar, se resalta.<br><br>
    <b>Papel del actor</b> (Archivo › Papel del actor): elige un personaje y se imprimen solo sus intervenciones, cada una bajo su escena y con su <b>pie</b>: la última línea de diálogo de quien habla antes, entera. Lo del actor sale en negrita y con una barra a la izquierda; el pie, en gris y cursiva. Con <b>Exportar también acotaciones</b> salen también las acotaciones y los paréntesis pegados a su intervención y a la del pie, no las sueltas de la escena.</p>
   </section>
@@ -291,6 +296,8 @@ const ALT={cine:{character:'paren',dialogue:'action'},teatro:{character:'paren',
 const SWAP={accion:'dialogue',paren:'character'};let ROUTE='';
 const nextOf=t=>(SWAP[ROUTE]===t?ALT:NEXT)[M][t],altOf=t=>(SWAP[ROUTE]===t?NEXT:ALT)[M][t];
 const HEAD=/^(INT\.?\/EXT|I\/E|INT|EXT)\.?\s+/i;
+// Spanish transitions, recognised like TO: (alone between blank lines, all caps)
+const TRANS=/^(CORTE A|FUNDIDO A|FUNDIDO DE|ENCADENADO A|DISOLVENCIA A|FUNDE A)(?=[\s:.]).*[:.]$/;
 const DEMO=[['heading','INT. COCINA - NOCHE'],['action','Una luz tenue sobre la mesa. ANA espera con el móvil en la mano.'],['character','ANA'],['dialogue','Dijo que vendría antes de las doce.'],['character','LUIS'],['paren','sin mirarla'],['dialogue','Siempre dice lo mismo.']];
 let M='cine',last=null,tm=0,other=null,hist=[],pos=-1,esc=null,free=false,fresh=null,PL=[],jp={},NT=[],CH=[],mgOn=true,raf=0;// PL: the author's places [{id,n}]; headings point to an id in data-place
 // NT: notes [{id,text,from,versions}]; any line may point to one in data-note. A note outlives its line (loose); from = start of its last line;
@@ -377,7 +384,22 @@ function renderPanels(){
   +(A.none.length?`<li data-p="" class="none"><span>${A.none.length} escena${A.none.length>1?'s':''} sin lugar</span></li>`:'');
  $('tPre').innerHTML=presTable(A);
  renderSel();renderNotes();
- $('stat').textContent=(ED.textContent.split(/\s+/).filter(Boolean).length)+' pal.'+(NT.length?` · ${NT.length} nota${NT.length>1?'s':''}`:'')}
+ const pg=pages();
+ $('stat').textContent=(ED.textContent.split(/\s+/).filter(Boolean).length)+' pal. · '+pg+' pág.'+(M==='cine'?` · ~${pg} min`:'')+(NT.length?` · ${NT.length} nota${NT.length>1?'s':''}`:'')}
+// printed pages, estimated from the text the way print lays it out: A4 with 2.5 cm margins (933.5 px tall), Courier 12 pt = 16 px,
+// lines of 22.4 px. PW: characters per line of each type; PT: space above it. A heading, act or character stays with what follows
+const PW={cine:{action:62,heading:62,transition:62,character:39,paren:32,dialogue:41},teatro:{stage:44,heading:62,act:62,character:48,paren:42,dialogue:45}};
+const PT={heading:28.8,act:40,paren:0,dialogue:0};
+const wrap=(t,w)=>{let n=1,x=0;for(const s of t.split(' ')){if(x&&x+1+s.length>w){n++;x=0}else if(x)x++;x+=s.length;while(x>w){n++;x-=w}}return n};
+function pages(){
+ const H=933.5,W=PW[M],c=getCover();let n=1,y=c.on||!TI.value?0:wrap(TI.value,48)*29.12+62.4,g=0,m=0;
+ [...ED.children].forEach((d,i,A)=>{
+  const t=d.dataset.type,top=PT[t]??16,hh=wrap(d.textContent,W[t]||62)*22.4;
+  if(!g)m=top;g+=(g?top:0)+hh;
+  if(/^(heading|act|character)$/.test(t)&&i<A.length-1)return;
+  if(y&&y+m+g>H){n++;y=g}else y+=(y?m:0)+g;
+  g=0});
+ return n}
 // presence of scenes a..b-1: a character is in a scene if they speak in it; acts group the columns
 function presTable(A,a=0,b=1e9){
  let act='';const C=[],G=[];A.scenes.forEach(s=>{if(s.act)act=s.label;else C.push({...s,act})});
@@ -718,8 +740,18 @@ ED.addEventListener('keydown',ev=>{
 // a script wiped to one empty line starts again with a scene heading
 let nb=0;ED.addEventListener('beforeinput',()=>nb=ED.children.length);
 ED.addEventListener('input',()=>{esc=null;norm();if(nb>1&&ED.children.length===1&&!ED.textContent)setType(ED.firstChild,'heading');changed();sugg();if(NT.length)place()});
+// pasted text that looks like Fountain (a heading, an act, a transition or two characters) comes in typed, after the cursor's line,
+// in one undo step; its title page and [[…]] tags are dropped. Anything else is pasted as before
+function pasteScript(d,s){
+ if(!/\n/.test(s.trim()))return false;
+ const L=parseFountain(s,M).l;
+ if(!L.some(x=>['heading','transition','act'].includes(x[0]))&&L.filter(x=>x[0]==='character').length<2)return false;
+ commit();const N=L.map(([ty,tx])=>mk(conv(ty,M),tx));
+ if(d.textContent.trim())d.after(...N);else d.replaceWith(...N);
+ const z=N[N.length-1];caret(z,9e9);z.scrollIntoView({block:'nearest'});commit();return true}
 ED.addEventListener('paste',ev=>{
  ev.preventDefault();const d=cur();if(!d)return;
+ if(pasteScript(d,ev.clipboardData.getData('text/plain')))return;
  const p=ev.clipboardData.getData('text/plain').split(/\r?\n/);
  document.execCommand('insertText',false,p[0]);
  let tail='';
@@ -769,7 +801,7 @@ function toFountain(){
 const tag=(k,v)=>`[[${k}: ${v.replace(/\](?= *(\]|$))/g,'] ').replace(/\n(?=\n|$)/g,'\n  ')}]]`;
 const untag=v=>v.replace(/\] (?= *(\]|$))/g,']');
 const noteTags=n=>[['nota',n.text],...n.versions.map(v=>['version',v])].map(([k,v])=>tag(k,v)).join(' ');
-function parseFountain(src){
+function parseFountain(src,mode){// mode: read as this mode whatever the file says (pasting)
  // [[lugar: …]] tags its heading; [[nota: …]], [[version: …]] and any other note go to the note of their line;
  // a line with only notes is a loose note. Notes may span lines, so they are swapped for a token before splitting
  src=src.replace(/\r/g,'').replace(/\/\*[\s\S]*?\*\//g,'');
@@ -785,7 +817,7 @@ function parseFountain(src){
  const KEY=/^(Title|Credit|Author|Authors|Source|Revision|Draft date|Date|Contact|Copyright|Notes|Mode)\s*:\s*(.*)/i;
  if(KEY.test(R[0]||'')){let k;for(;i<R.length&&R[i].trim();i++){const r=R[i].replace(/\u0001\d+\u0001/g,''),m=r.match(KEY);
   if(m){k=m[1].toLowerCase();meta[k]=m[2].trim()}else if(k&&/^(\t| {3})/.test(r))meta[k]+=(meta[k]?'\n':'')+r.trim()}}
- const teatro=(meta.mode||'').toLowerCase()==='teatro';
+ const teatro=(mode||meta.mode||'').toLowerCase()==='teatro';
  let blank=true,dlg=false;
  for(;i<R.length;i++){
   let pl='';const t=R[i].replace(/\u0001(\d+)\u0001/g,(_,k)=>(B.push(NB[k]),'')).replace(/\s*\[\[\s*lugar:\s*([^\]]*?)\s*\]\]/gi,(_,n)=>(pl=n,'')).trim();
@@ -797,7 +829,7 @@ function parseFountain(src){
   else if(t[0]==='=');
   else if(/^\.(?!\.)/.test(t)||HEAD.test(t)){const x=['heading',t.replace(/^\./,'').replace(/\s*#[^#]+#\s*$/,'')],id=pid(pl);if(id)x.push(id);add(x)}
   else if(t[0]==='>'&&t.slice(-1)!=='<')add(['transition',t.slice(1).trim()]);
-  else if(blank&&nextBlank&&/^[^a-z]*TO:$/.test(t))add(['transition',t]);
+  else if(blank&&nextBlank&&(/^[^a-z]*TO:$/.test(t)||t===t.toUpperCase()&&TRANS.test(t)))add(['transition',t]);
   else if(blank&&!nextBlank&&(t[0]==='@'||(t===t.toUpperCase()&&/\p{L}/u.test(t)&&t[0]!=='!'))){add(['character',t.replace(/^@/,'').replace(/\s*\^$/,'')]);dlg=true}
   else add([teatro?'stage':'action',t.replace(/^!/,'')]);
   if(out.length===k)nid();// a line that is not kept leaves its note loose
