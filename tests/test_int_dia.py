@@ -750,8 +750,15 @@ with sync_playwright() as pw:
     fo = F.evaluate("toFountain()")
     check("ficha: Fountain la lleva al final como [[ficha NOMBRE: …]]", fo.rstrip().endswith("[[ficha LUIS: Dos párrafos.\n  \nCon ] ] dentro.]]") and "[[ficha ANA: Hermana mayor.\nQuiere irse.]]" in fo, fo)
     fd = F.evaluate("parseFountain(toFountain())")
-    check("ficha: Fountain ida y vuelta conserva las fichas y el guion", fd["ch"] == [{"n": "ANA", "t": "Hermana mayor.\nQuiere irse."}, {"n": "LUIS", "t": "Dos párrafos.\n\nCon ] ] dentro."}]
+    check("ficha: Fountain ida y vuelta conserva las fichas y el guion", fd["ch"] == [{"n": "ANA", "t": "Hermana mayor.\nQuiere irse."}, {"n": "LUIS", "t": "Dos párrafos.\n\nCon ]] dentro."}]
           and fd["l"] == F.evaluate("rows().map(r=>[r[0],unparen(r[1])])") and fd["n"] == [], fd)
+    br = F.evaluate(r"""C=>C.map(t=>{const L0=JSON.stringify(rows().map(r=>[r[0],unparen(r[1])])),v=t.replace(/\n/g,' ');
+      NT.length=0;NT.push({id:'9',text:t,from:'',versions:[v]});ED.children[1].dataset.note='9';CH.length=0;CH.push({n:'ANA',t});
+      const d=parseFountain(toFountain()),n=d.n[0]||{};
+      return n.text===t&&(n.versions||[])[0]===v&&(d.ch[0]||{}).t===t&&JSON.stringify(d.l.map(r=>[r[0],r[1]]))===L0||[t,n,d.ch,d.l]})""",
+      ["ver [a]", "]", "]]", "[[x]]", "a ]", "] ]", "x]\n\ny ]]"])
+    check("Fountain: notas, versiones y fichas con «]» al final o «]]» vuelven intactas y no tocan el guion", all(x is True for x in br), br)
+    F.evaluate("NT.length=0;delete ED.children[1].dataset.note;CH.length=0;CH.push({n:'ANA',t:'Hermana mayor.\\nQuiere irse.'},{n:'LUIS',t:'Dos párrafos.\\n\\nCon ]] dentro.'});commit()")
     fd = F.evaluate("parseFountain('Title: X\\n\\nANA\\nHola.\\n\\n[[ficha ana: Uno]]\\n\\n[[ficha Ana: Dos]]\\n')")
     check("ficha: al importar, la misma ficha dos veces junta sus textos", fd["ch"] == [{"n": "ANA", "t": "Uno\n\nDos"}] and fd["n"] == [], fd)
     F.evaluate("setSheet('LUIS','')")

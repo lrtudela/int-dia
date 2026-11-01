@@ -764,16 +764,18 @@ function toFountain(){
  NT.filter(n=>!used.has(n.id)).forEach(n=>o+='\n'+noteTags(n)+'\n');// loose notes (or on an empty line) go at the end, one paragraph each
  CH.forEach(c=>o+='\n'+tag('ficha '+c.n,c.t)+'\n');// character sheets too, after the notes
  return o}
-// a blank line would end the note in Fountain, so it carries two spaces
-const tag=(k,v)=>`[[${k}: ${v.replace(/\]\]/g,'] ]').replace(/\n(?=\n|$)/g,'\n  ')}]]`;
+// a blank line would end the note in Fountain, so it carries two spaces;
+// a ] before another ] (spaces between allowed) or at the end gets one more space, so ]] never shows up and untag undoes it
+const tag=(k,v)=>`[[${k}: ${v.replace(/\](?= *(\]|$))/g,'] ').replace(/\n(?=\n|$)/g,'\n  ')}]]`;
+const untag=v=>v.replace(/\] (?= *(\]|$))/g,']');
 const noteTags=n=>[['nota',n.text],...n.versions.map(v=>['version',v])].map(([k,v])=>tag(k,v)).join(' ');
 function parseFountain(src){
  // [[lugar: …]] tags its heading; [[nota: …]], [[version: …]] and any other note go to the note of their line;
  // a line with only notes is a loose note. Notes may span lines, so they are swapped for a token before splitting
  src=src.replace(/\r/g,'').replace(/\/\*[\s\S]*?\*\//g,'');
  // [[ficha NAME: …]] is a character sheet, wherever it is; the same name twice joins both texts
- const C=[];src=src.replace(/\[\[\s*ficha\s+([^:\]]+?)\s*:\s?([\s\S]*?)\]\]/gi,(_,n,t)=>{t=t.split('\n').map(x=>x.trim()?x:'').join('\n');n=key(n);const o=C.find(c=>c.n===n);if(o)o.t+='\n\n'+t;else C.push({n,t});return''});
- const NB=[],N=[];src=src.replace(/\[\[(?!\s*lugar:)([\s\S]*?)\]\]/gi,(_,b)=>'\u0001'+(NB.push(b.split('\n').map(x=>x.trim()?x:'').join('\n'))-1)+'\u0001');
+ const C=[];src=src.replace(/\[\[\s*ficha\s+([^:\]]+?)\s*:\s?([\s\S]*?)\]\]/gi,(_,n,t)=>{t=untag(t).split('\n').map(x=>x.trim()?x:'').join('\n');n=key(n);const o=C.find(c=>c.n===n);if(o)o.t+='\n\n'+t;else C.push({n,t});return''});
+ const NB=[],N=[];src=src.replace(/\[\[(?!\s*lugar:)([\s\S]*?)\]\]/gi,(_,b)=>'\u0001'+(NB.push(untag(b).split('\n').map(x=>x.trim()?x:'').join('\n'))-1)+'\u0001');
  const R=src.split('\n'),meta={},out=[],P=[];let i=0,B=[];
  const pid=n=>{if(!n)return;let p=P.find(x=>x.n.toUpperCase()===n.toUpperCase());if(!p)P.push(p={id:String(P.length+1),n});return p.id};
  const nid=()=>{if(!B.length)return;const n={id:String(N.length+1),text:'',from:'',versions:[]},T=[];
